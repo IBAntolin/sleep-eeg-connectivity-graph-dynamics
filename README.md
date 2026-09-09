@@ -681,3 +681,325 @@ The present phase does not yet treat the exploratory plots or artifact checks as
 final population-level neuroscience findings. Their role is to establish a
 transparent, inspectable, and reproducible foundation for the analyses that
 follow.
+
+---
+
+## Phase 2
+
+## Static graph-theoretical analysis
+
+After preprocessing, each participant has one wPLI connectivity graph for every
+retained 30-second epoch and frequency band. This stage of the project moves
+from epoch-level graphs to **stage-mean functional-connectivity networks** and
+calculates classical static graph-theoretical measures.
+
+The goal is to describe how the topology of EEG functional-connectivity
+networks differs across sleep stages and frequency bands, while checking that
+observed patterns are not dependent on one arbitrary graph-threshold choice.
+
+```text
+Processed epoch-level wPLI graphs
+        ↓
+Group epochs within each subject by sleep stage and frequency band
+        ↓
+Average wPLI adjacency matrices element by element
+        ↓
+One stage-mean graph per subject × stage × band
+        ↓
+Calculate static graph-theoretical metrics
+        ↓
+Evaluate threshold sensitivity and prepare data for later statistics
+```
+
+This analysis remains exploratory and descriptive at its current stage. The
+metric tables and figures are intended to identify robust candidate patterns
+for formal subject-aware statistical testing; they do not alone establish
+population-level sleep-stage effects.
+
+### Stage-mean graph construction
+
+For every participant, sleep stage, and frequency band, all valid epoch-level
+wPLI matrices are averaged element by element.
+
+```text
+stage_mean_graph[subject, band, stage]
+    = average of all valid 30-second wPLI matrices
+      from that subject, band, and stage
+```
+
+This produces one weighted, undirected 83 × 83 functional-connectivity graph
+for each available combination of:
+
+```text
+subject × sleep stage × frequency band
+```
+
+The number of retained epochs contributing to each stage-mean graph is stored
+as metadata. This is important because stage duration and the number of valid
+epochs differ between participants.
+
+The stage-mean graphs are saved in separate HDF5 files, allowing later
+statistical, visualization, and machine-learning analyses to reuse exactly the
+same graph representation without repeating aggregation.
+
+```text
+graphs_output/
+└── stage_mean_wpli_graphs_<beta_mode>/
+    ├── EPCTL01_stage_means.h5
+    ├── EPCTL02_stage_means.h5
+    └── ...
+```
+
+### Unthresholded weighted analysis
+
+The initial static-metric analysis uses the complete stage-mean weighted wPLI
+networks.
+
+```text
+All positive wPLI edges are retained.
+No proportional threshold is applied.
+No absolute wPLI threshold is applied.
+The graph diagonal is set to zero.
+```
+
+The following metrics are calculated for every subject × stage × band graph:
+
+| Metric | Meaning |
+|---|---|
+| `mean_wpli` | Average wPLI across all unique channel pairs; overall functional-connectivity strength |
+| `mean_node_strength` | Average sum of weighted connections incident on a node |
+| `mean_weighted_clustering` | Local weighted neighbourhood connectivity; a descriptive measure related to local segregation |
+| `weighted_global_efficiency` | Global integration through short weighted paths |
+| `weighted_characteristic_path_length` | Mean shortest weighted path length; lower values correspond to shorter routes |
+| `modularity_louvain` | Strength of weighted community-like organization identified with the Louvain method |
+| `n_louvain_communities` | Number of Louvain communities found |
+| `n_nodes` | Number of graph nodes; expected to be 83 |
+| `n_edges` | Number of positive weighted edges |
+| `edge_density` | Fraction of possible edges present |
+| `n_connected_components` | Number of disconnected components |
+| `largest_component_size` | Size of the largest connected component |
+| `minimum_nonzero_wpli` | Smallest retained positive wPLI value |
+
+For shortest-path measures, wPLI connection strength is converted to graph
+distance:
+
+```text
+edge distance = 1 / wPLI
+```
+
+A stronger wPLI connection therefore corresponds to a shorter functional route
+through the network.
+
+Louvain community detection uses a fixed random seed to make results
+reproducible across reruns.
+
+### Beta-band sensitivity specification
+
+Earlier quality-control checks found a beta-specific concern: peripheral
+channels were over-represented among the strongest beta-band edges, with the
+pattern concentrated in edges connecting two peripheral electrodes. This may
+reflect residual muscle-related signal contributions at outer-ring, temporal,
+zygomatic, or jaw-adjacent electrodes.
+
+The primary sensitivity version of the beta-band analysis retains all 83 EEG
+nodes but removes only edges with **both** endpoints in the predefined
+peripheral-channel set.
+
+```text
+Total possible undirected edges:       3,403
+Both-peripheral beta edges excluded:     231
+Fraction of possible edges excluded:    6.8%
+Edges still available:                 93.2%
+```
+
+This is a deliberately narrow sensitivity correction. It does not assume that
+all peripheral beta connectivity is artifactual. Instead, it tests whether
+stage-related beta-network patterns remain when the most specifically
+identified potential contamination source is excluded.
+
+The selected beta-edge mode is saved in the output HDF5 files and metric
+tables:
+
+```text
+full
+    All positive beta-band edges are retained.
+
+exclude_both_peripheral
+    All 83 nodes remain, but beta edges connecting two peripheral channels are
+    set to zero.
+```
+
+Results from these two versions should be treated as separate analyses and
+should not be combined in the same statistical comparison.
+
+### Thresholded robustness analysis
+
+Thresholding is used as a robustness analysis of static network topology.
+
+A proportional threshold retains the same percentage of strongest positive wPLI
+edges in each graph:
+
+```text
+10% density:
+    retain the strongest 10% of possible undirected edges.
+
+85% density:
+    retain the strongest 85% of possible undirected edges.
+```
+
+This gives every subject × stage × band graph comparable edge density,
+regardless of its overall raw wPLI magnitude.
+
+Two threshold families are evaluated because sparse and connected graphs allow
+different questions to be addressed.
+
+| Threshold family | Densities | Primary purpose | Metrics interpreted |
+|---|---:|---|---|
+| Sparse sensitivity | 10%, 20%, 30% | Inspect topology among strongest edges | Weighted clustering, Louvain modularity, community count, component quality control |
+| Connected robustness | 85%, 90% | Test integration patterns while preserving full connectivity | Global efficiency, characteristic path length, clustering, modularity |
+
+At sparse densities, many graphs become disconnected. This is expected when
+only the strongest edges are retained. Therefore, shortest-path-based measures
+are not calculated or interpreted for the sparse threshold family.
+
+At the connected thresholds, all 700 available subject × stage × band graphs
+were fully connected:
+
+```text
+85% density:
+    700 / 700 graphs fully connected
+    all graphs contain one connected component of 83 nodes
+
+90% density:
+    700 / 700 graphs fully connected
+    all graphs contain one connected component of 83 nodes
+```
+
+This makes weighted global efficiency and weighted characteristic path length
+well-defined for the connected-threshold analysis. [25]
+
+### Thresholded graph metrics
+
+For thresholded networks, graph connectedness is recorded explicitly:
+
+| Field | Meaning |
+|---|---|
+| `requested_density` | Proportion of possible edges targeted by the threshold |
+| `edge_density` | Observed retained edge density |
+| `n_connected_components` | Number of disconnected graph components |
+| `largest_component_size` | Number of nodes in the largest component |
+| `fully_connected` | Whether all 83 nodes are part of one connected graph |
+
+The primary connected-threshold metrics are:
+
+| Metric | Interpretation |
+|---|---|
+| `weighted_global_efficiency` | Higher values indicate more efficient communication through strong, short weighted routes |
+| `weighted_characteristic_path_length` | Lower values indicate shorter average routes between nodes |
+| `mean_weighted_clustering` | Describes local weighted neighbourhood structure |
+| `modularity_louvain` | Describes weighted community-like organization |
+
+### Current descriptive findings
+
+The connected-threshold analysis shows qualitatively similar sleep-stage
+patterns at both 85% and 90% graph density. This supports robustness of the
+descriptive integration patterns to the choice between these two connected
+thresholds. [25]
+
+The main candidate patterns for later formal testing are:
+
+- **Sigma:** networks appear relatively more integrated during N2 and N3 and
+  less integrated during REM.
+- **Delta:** integration appears relatively higher during Wake and N2 and lower
+  during N1 and REM.
+- **Alpha:** REM often shows lower integration, while Wake and N3 appear
+  relatively more integrated; participant variability is substantial.
+- **Theta:** integration appears comparatively stable across sleep stages.
+- **Beta:** integration tends to decrease from Wake toward N2/N3 and partially
+  recover in REM, but between-participant variation is large.
+
+The principal descriptive observation is that sigma-band networks appear more
+integrated during N2/N3 and less integrated during REM. These observations are
+not yet inferential conclusions and require subject-aware statistical tests
+with appropriate control of repeated measures and multiple comparisons. [25]
+
+Weighted clustering and Louvain modularity are retained as complementary,
+supplementary topology measures. They can provide useful information about
+local segregation and community-like organization, but they are more sensitive
+to graph density, threshold selection, and community-detection choices than the
+primary connected-network integration measures.
+
+### Visualizations
+
+The static graph-analysis notebooks generate participant-level descriptive
+figures that combine:
+
+- One trajectory per participant across sleep stages.
+- Boxplots summarizing the participant distribution per stage.
+- Individual participant values.
+- Separate panels for each frequency band.
+- Separate rows for 85% and 90% connected thresholds.
+
+These figures are useful for showing individual heterogeneity and for checking
+whether apparent stage-related changes are consistent across participants and
+across the two connected densities.
+
+Wake-referenced heatmaps are also generated for selected metrics. In these
+figures, each cell represents the change from the same participant's Wake
+value:
+
+```text
+change from Wake
+    = metric value for a given stage
+      minus
+      metric value for Wake in the same subject and band
+```
+
+Positive values indicate an increase relative to Wake; negative values indicate
+a decrease relative to Wake.
+
+> The figures are exploratory and descriptive. They should not be read as
+> group-level statistical evidence until the next analysis stage applies
+> appropriate within-subject statistical modelling.
+
+### Generated tables
+
+The thresholded analysis writes separate CSV tables for sparse and connected
+threshold families:
+
+```text
+threshold_metrics_sparse_10_20_30_exclude_both_peripheral_beta.csv
+
+threshold_metrics_connected_85_90_exclude_both_peripheral_beta.csv
+```
+
+Each row corresponds to:
+
+```text
+subject × frequency band × sleep stage × threshold density
+```
+
+The tables include the subject ID, sleep stage, frequency band, number of
+epochs used to form the stage-mean graph, beta-edge mode, graph-connectivity
+quality-control fields, and static graph metrics.
+
+These tables are the primary numerical outputs for the next stage:
+subject-aware statistical comparison of sleep-stage effects.
+
+### Interpretation notes
+
+- Each subject × stage × band graph is one repeated-measures observation; it is
+  not an independent epoch-level sample.
+- Later group-level analysis must account for repeated observations within
+  participants.
+- The number of epochs averaged for a stage graph should be considered in
+  sensitivity analyses, because stage coverage differs between participants.
+- Sparse graphs may be disconnected; do not interpret path-length or global
+  efficiency values from disconnected sparse networks.
+- Agreement between 85% and 90% density supports robustness to those connected
+  thresholds, but does not prove robustness to every possible graph
+  construction choice.
+- Do not mix full-beta and peripheral-edge-excluded beta results in one
+  analysis.
+- Current results are descriptive. Formal statistical inference remains a
+  subsequent step.
