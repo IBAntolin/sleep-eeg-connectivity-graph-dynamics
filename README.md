@@ -1045,3 +1045,403 @@ subject-aware statistical comparison of sleep-stage effects.
   analysis.
 - Current results are descriptive. Formal statistical inference remains a
   subsequent step.
+
+  ---
+
+## Phase 3
+
+## Phase B: self-supervised graph representation learning and within-stage dynamics
+
+The final project component examines sleep EEG connectivity at the temporal
+resolution of individual 30-second epochs.
+
+The earlier static graph-theoretical analysis aggregates all valid epochs from a
+participant, sleep stage, and frequency band into one stage-mean network. That
+approach is useful for describing average network topology, but it cannot show
+whether the connectivity graph remains stable or changes substantially from one
+30-second epoch to the next within the same scored sleep stage.
+
+Phase B therefore uses a self-supervised GATv2 graph autoencoder to learn a
+compact representation of individual delta-band functional-connectivity graphs.
+The learned graph embeddings are then used to quantify short-timescale
+within-stage temporal stability.
+
+```text
+30-second delta-band wPLI connectivity graph
+        ↓
+Thresholded graph representation
+        ↓
+Self-supervised GATv2 graph autoencoder
+        ↓
+Learned low-dimensional graph embedding
+        ↓
+Compare embeddings of adjacent 30-second epochs
+        ↓
+Quantify within-stage temporal stability
+```
+
+### Aim
+
+The main question is:
+
+> Does the temporal stability of the learned delta-band functional-connectivity
+> representation differ across Wake, N1, N2, N3, and REM sleep?
+
+The analysis does not treat conventional sleep stages as perfectly homogeneous.
+Instead, it asks whether consecutive 30-second graphs assigned to the same
+stage remain similarly represented by the learned graph model.
+
+This provides a complementary perspective to stage-mean graph metrics:
+
+```text
+Static graph analysis:
+    How does average network topology differ between sleep stages?
+
+Phase B graph-embedding analysis:
+    How stable is the network representation from one 30-second epoch
+    to the next within the same sleep stage?
+```
+
+### Input graphs
+
+Phase B uses individual 30-second delta-band wPLI connectivity matrices
+created during preprocessing.
+
+The delta band is defined as:
+
+```text
+0.5–4 Hz
+```
+
+Each epoch is represented as an 83-node weighted functional-connectivity graph:
+
+```text
+Nodes:
+    83 scalp EEG channels
+
+Edges:
+    delta-band wPLI connectivity values between electrode pairs
+
+Graph source:
+    subject-level processed HDF5 files created by the preprocessing pipeline
+```
+
+The graph representation uses proportional edge retention. The trained
+autoencoder configuration records the selected edge density and epoch sampling
+stride in its output filenames and metadata.
+
+```text
+Example configuration:
+    Epoch stride: 10
+    Retained graph density: 20%
+```
+
+The selected graph-construction configuration should be kept fixed when
+interpreting embeddings and within-stage distances.
+
+### Data partitioning
+
+The autoencoder uses participant-level data partitioning.
+
+```text
+Training participants:
+    Used to optimize model parameters.
+
+Validation participants:
+    Used for model selection and selection of the best validation epoch.
+
+Held-out test participants:
+    Not used during fitting, validation, or model selection.
+    Used only for an independent descriptive evaluation.
+```
+
+Participant-level splitting is essential because multiple epochs from the same
+participant are strongly related. Splitting individual epochs across training
+and validation/test sets would allow participant-specific connectivity
+properties to leak into evaluation.
+
+The model partition is used for machine-learning evaluation only. It is not a
+biological category and is displayed in plots only to show the origin of each
+participant's embedding values.
+
+### Self-supervised GATv2 autoencoder
+
+The model is a graph-attention autoencoder based on GATv2 layers.
+
+The autoencoder is trained without sleep-stage labels as direct prediction
+targets. Instead, it learns to reconstruct the observed graph edge structure:
+
+```text
+Input:
+    Thresholded delta-band connectivity graph
+
+Encoder:
+    GATv2 message-passing layers produce node-level latent representations
+
+Graph embedding:
+    Node-level latent representations are pooled into one fixed-length
+    embedding per 30-second graph
+
+Decoder:
+    Estimates whether an edge should be present between pairs of nodes
+
+Training objective:
+    Distinguish retained positive edges from sampled non-edges
+```
+
+The model is trained with binary edge-reconstruction loss. It receives retained
+graph edges as positive examples and sampled non-edges as negative examples.
+
+A successful model should assign higher predicted probabilities to retained
+positive edges than to sampled non-edges. Training and validation reconstruction
+losses, together with positive-versus-negative edge probability separation, are
+tracked to assess training quality and select the best validation epoch.
+
+### Training quality control
+
+The notebook produces a training-history figure with three panels:
+
+| Panel | What it evaluates |
+|---|---|
+| Reconstruction loss | Training and validation binary edge-reconstruction loss across training epochs |
+| Positive/negative edge probability | Whether retained graph edges receive higher predicted probabilities than sampled non-edges |
+| Probability gap | Mean retained-edge probability minus mean non-edge probability |
+
+The best model state is selected using the minimum validation reconstruction
+loss.
+
+The training-history figure is a model-quality-control result. It verifies that
+the autoencoder learns meaningful graph structure, but it is not itself a
+sleep-stage finding.
+
+### Graph embeddings
+
+After training, the encoder produces one fixed-length embedding for each input
+30-second connectivity graph.
+
+```text
+One graph at time t
+        ↓
+Encoder
+        ↓
+One low-dimensional graph embedding at time t
+```
+
+The distance between two graph embeddings measures how much the learned graph
+representation changes between the corresponding connectivity epochs.
+
+```text
+embedding distance =
+    Euclidean distance between two graph embeddings
+```
+
+Interpretation:
+
+```text
+Smaller embedding distance:
+    Consecutive graphs have more similar learned network representations.
+    The within-stage network state is more temporally stable.
+
+Larger embedding distance:
+    Consecutive graphs differ more in the learned network representation.
+    The within-stage network state changes more from one 30-second epoch
+    to the next.
+```
+
+Embedding distance is a learned representation-space measure. It should not be
+interpreted as a direct physiological distance or as a replacement for
+classical graph-theoretical metrics.
+
+### Within-stage stability analysis
+
+The stability analysis is restricted to adjacent graph pairs with the same
+scored sleep-stage label.
+
+```text
+Included stable pair:
+    Wake → Wake
+    N1   → N1
+    N2   → N2
+    N3   → N3
+    REM  → REM
+
+Excluded transition pair:
+    Wake → N1
+    N1   → N2
+    N2   → N3
+    N3   → REM
+    or any other stage transition
+```
+
+Only exact adjacent 30-second pairs are included:
+
+```text
+stored epoch gap = 1
+time gap = 0.5 minutes
+```
+
+For every valid stable adjacent pair:
+
+```text
+embedding_distance =
+    distance between the graph embedding at time t
+    and the graph embedding at time t - 1
+```
+
+The analysis then summarizes pair-level distances within each participant and
+stage:
+
+```text
+participant-stage stability value =
+    median embedding distance across that participant's valid stable
+    adjacent 30-second pairs in the stage
+```
+
+The median is used because it is less sensitive to occasional large
+epoch-to-epoch graph changes than a simple mean.
+
+This participant-level summary is the unit used for cohort-level descriptive
+statistics and exploratory tests. Raw counts of stable 30-second pairs are not
+treated as independent observations.
+
+### Exploratory results
+
+The notebook produces participant-level and cohort-level descriptive summaries
+of within-stage graph-embedding stability.
+
+The analysis includes:
+
+- Participant-level median embedding-distance profiles across stages.
+- A participant-by-stage heatmap of median embedding distances.
+- Cohort summaries that give every participant equal weight within a stage.
+- Bootstrap 95% confidence intervals around the mean and median of
+  participant-level values.
+- A small held-out-test-participant summary for independent descriptive
+  inspection.
+
+The available descriptive output indicates that the learned delta-band graph
+representation has different within-stage stability profiles across the scored
+sleep stages. In the current held-out test-participant summary, the median
+embedding distances were approximately:
+
+| Stable stage | Held-out participants | Median of participant medians |
+|---|---:|---:|
+| Wake | 3 | 0.243 |
+| N1 | 3 | 0.277 |
+| N2 | 3 | 0.275 |
+| N3 | 3 | 0.294 |
+| REM | 3 | 0.296 |
+
+Lower values correspond to greater temporal stability of the learned graph
+representation. The held-out summary is intentionally descriptive because it
+contains only three participants. [57]
+
+### Exploratory omnibus permutation check
+
+An exploratory repeated-measures Friedman analysis tests whether
+participant-level within-stage stability differs across the five sleep stages.
+
+The observed Friedman chi-square statistic was:
+
+```text
+Observed Friedman statistic: 20.714
+```
+
+A permutation null distribution is generated by repeatedly shuffling stage
+labels within participants and recalculating the Friedman statistic. This
+preserves the participant-level repeated-measures structure while breaking the
+association between a participant's stability values and their stage labels.
+
+The observed statistic lies beyond the visible permutation null distribution,
+supporting an exploratory stage-related difference in within-stage embedding
+stability. The omnibus result indicates that at least one stage differs from at
+least one other stage; it does not identify the responsible stage pair(s) or
+their direction. [58]
+
+> The exact permutation p-value should be reported together with the number of
+> permutations used. Use the finite-sample corrected estimate:
+>
+> ```text
+> permutation p-value =
+> (number of permuted statistics greater than or equal to the observed statistic + 1)
+> divided by
+> (number of permutations + 1)
+> ```
+>
+> Do not report a finite permutation result as `p = 0`.
+
+### Outputs
+
+Generated Phase B results are saved locally and excluded from Git version
+control. These may include:
+
+```text
+phase_b_gatv2_autoencoder/
+├── model checkpoints
+├── training history
+├── graph embeddings
+├── edge-reconstruction metrics
+├── adjacent-pair embedding-distance table
+├── participant-level within-stage stability table
+├── participant-by-stage stability matrix
+├── bootstrap summary table
+├── held-out test-subject summary
+└── exploratory stability figures
+```
+
+Typical saved outputs include:
+
+```text
+<band>_autoencoder_training_history.png
+stable_adjacent_30second_embedding_pairs.csv
+subject_level_within_stage_stability.csv
+participant_by_stage_stability_matrix.csv
+within_stage_stability_descriptive_summary.csv
+within_stage_stability_bootstrap_summary.csv
+heldout_test_within_stage_stability_summary.csv
+within_stage_stability_combined.png
+```
+
+The code and notebook required to recreate these outputs are included in the
+repository. Large learned embeddings, model checkpoints, generated tables, and
+training figures remain local data products and should not be committed to the
+main repository.
+
+### Interpretation and limitations
+
+This is an exploratory proof-of-concept analysis.
+
+- Embedding distances describe differences in a learned model representation;
+  they are not direct measures of physiological distance.
+- The autoencoder is self-supervised and does not use sleep stage as a training
+  label, but learned representations may still reflect subject, recording,
+  preprocessing, graph-construction, or signal-quality characteristics.
+- Participant-level summaries are used to avoid treating repeated 30-second
+  pairs as independent observations.
+- Only pairs with the same stage label are included in the primary stability
+  analysis; stage transitions are deliberately excluded from the outcome.
+- A Friedman test is an omnibus comparison. Pairwise within-participant
+  follow-up tests, effect sizes, confidence intervals, and correction for
+  multiple comparisons are needed to identify which stages differ.
+- The held-out test subset provides independent descriptive context but is too
+  small for strong standalone inference.
+- Results should be interpreted together with the earlier EEG preprocessing,
+  artifact-sensitivity, and graph-construction checks.
+
+### Phase B conclusion
+
+Phase B demonstrates a self-supervised graph-learning workflow for representing
+individual 30-second delta-band EEG functional-connectivity graphs and
+quantifying their short-timescale stability within conventionally scored sleep
+stages.
+
+The analysis provides exploratory evidence that the learned graph
+representation does not have identical within-stage stability across all sleep
+stages. This complements the stage-mean static network analysis by adding a
+temporal, epoch-resolved description of functional-connectivity dynamics.
+
+Further work should focus on preregistered or clearly specified follow-up
+comparisons, participant-aware effect-size estimation, robustness to graph
+density and model hyperparameters, comparison with non-learned graph-distance
+measures, and interpretation of which connectivity features drive learned
+embedding differences.
