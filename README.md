@@ -477,6 +477,15 @@ the processed graph files.
 
 ---
 
+## Computational environment
+
+This workflow was developed and run on a Windows laptop using Python.
+The current preprocessing and classical graph-analysis stages are CPU-based and
+do not require a GPU. Exact package requirements are listed in
+`requirements.txt`.
+
+---
+
 ## Installation
 
 Install the required Python packages:
@@ -499,6 +508,39 @@ The main packages are used as follows:
 | `tqdm` | Progress bars during processing |
 | `matplotlib` | Quality-control and exploratory plots |
 
+---
+
+## Data source
+
+This project uses the **ANPHY-Sleep** dataset: an open overnight
+high-density scalp EEG dataset from healthy adults.
+
+- **Dataset on OSF:** [ANPHY-Sleep / OSF project](https://doi.org/10.17605/OSF.IO/R26FH)
+- **Dataset paper:** Wei, X. et al. (2024). *ANPHY-Sleep: an Open Sleep
+  Database from Healthy Adults Using High-Density Scalp
+  Electroencephalogram*. Scientific Data, 11, 896.
+  [https://doi.org/10.1038/s41597-024-03722-1](https://doi.org/10.1038/s41597-024-03722-1)
+
+The dataset contains overnight polysomnographic recordings from 29 healthy
+adults, including 83-channel high-density scalp EEG together with EOG, EMG,
+ECG, electrode-position information, and sleep-scoring annotations.
+
+The raw dataset and derived participant-level connectivity files are not
+included in this repository. Users should obtain the original data directly
+from the ANPHY-Sleep OSF project and should follow the dataset's terms,
+citation requirements, and any applicable ethical or data-use guidance.
+
+The scripts in this repository are designed to download and process the source
+data locally:
+
+```python
+from download_data import download_shared_files, download_subject
+
+DATA_ROOT = "anphy_sleep_data"
+
+download_shared_files(DATA_ROOT)
+download_subject(1, DATA_ROOT)
+```
 ---
 
 ## How to run Phase 1
