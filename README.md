@@ -8,78 +8,206 @@ within-stage temporal stability.
 ## Introduction
 
 Sleep is not a uniform state. Across a night, the brain transitions between
-wakefulness, light non-REM sleep, deep non-REM sleep, and REM sleep, each of
-which is associated with changes in neural oscillations, large-scale
-coordination, sensory responsiveness, and information processing.
+wakefulness, light non-REM sleep, deep non-REM sleep, and REM sleep. These
+states differ in neural oscillations, large-scale coordination, sensory
+responsiveness, physiological regulation, and information processing.
 
-This project studies these transitions from a network perspective. Rather than
-examining EEG channels independently, it represents the scalp EEG recording as
-a functional network in which electrodes are nodes and their phase-based
-statistical relationships are weighted edges. This makes it possible to ask how
-the organization of the estimated functional network changes across sleep
-stages and over time within a stage.
+This project investigates sleep-stage transitions using a network-neuroscience framework. 
+Rather than examining EEG channels independently, it represents the scalp EEG
+recording as a functional network in which electrodes are nodes and phase-based
+statistical relationships between pairs of electrodes are weighted edges. This
+makes it possible to ask how functional-network organization differs across
+sleep stages and how it evolves over time within a nominally stable stage.
 
 The initial connectivity representation is based on weighted phase-lag index
-(wPLI). For each 30-second scored EEG epoch, wPLI estimates the consistency of
-non-zero-lag phase relationships between pairs of EEG channels. Each epoch is
-therefore transformed into a weighted adjacency matrix rather than treated only
-as a collection of separate electrode time series.
+(wPLI). For each scored 30-second EEG epoch, wPLI estimates the consistency of
+non-zero-lag phase relationships between pairs of scalp EEG channels. Each
+epoch is therefore transformed into a weighted connectivity matrix and can be
+treated as a functional brain graph rather than only as a collection of
+separate channel time series.
 
-The central long-term questions are:
+```text
+One scored 30-second EEG epoch
+        ↓
+Band-specific wPLI connectivity estimation
+        ↓
+One weighted EEG functional-connectivity graph
+        ↓
+Static graph analysis and temporal graph-representation analysis
+```
 
-- How do frequency-specific functional connectivity networks differ between
+The project combines two complementary analytical time scales.
+
+At the **stage-mean scale**, all valid 30-second graphs belonging to the same
+participant, sleep stage, and frequency band are averaged to produce one
+stage-representative functional-connectivity graph. Classical graph-theoretical
+metrics are then used to describe network integration, local segregation,
+community-like structure, and threshold robustness across Wake, N1, N2, N3,
+and REM sleep.
+
+At the **epoch-resolved scale**, individual 30-second delta-band graphs are
+analysed with a self-supervised GATv2 graph autoencoder. The model learns a
+compact representation of graph structure without using sleep stages as direct
+training labels. Distances between embeddings of adjacent 30-second graphs are
+then used to quantify within-stage temporal stability.
+
+```text
+Stage-mean graph analysis:
+    How does average functional-network topology differ across sleep stages?
+
+Epoch-resolved GATv2 graph analysis:
+    How stable is the learned functional-network representation from one
+    30-second epoch to the next within the same sleep stage?
+```
+
+## Research questions
+
+This exploratory study addresses the following questions:
+
+- How do frequency-specific EEG functional-connectivity networks differ across
   Wake, N1, N2, N3, and REM sleep?
 - Do stage-mean networks differ in graph-theoretical measures of integration,
-  segregation, efficiency, modular organization, or hub structure?
-- How stable are connectivity graphs within a nominally homogeneous sleep
-  stage, particularly in the delta band?
-- Can self-supervised graph representation learning identify meaningful
-  within-stage temporal variation that conventional stage labels may not fully
-  capture?
-- Do the network patterns identified by graph-theoretical analysis and
-  self-supervised GATv2-based representations agree or provide complementary
-  descriptions of sleep-network dynamics?
+  local segregation, efficiency, characteristic path length, modularity, or
+  community structure?
+- Are descriptive static-network patterns robust to reasonable graph-density
+  choices?
+- How stable are 30-second delta-band functional-connectivity graphs within a
+  nominally homogeneous sleep stage?
+- Can a self-supervised GATv2 autoencoder learn graph representations that
+  capture meaningful within-stage temporal variation?
+- Do static graph-theoretical measures and learned graph embeddings provide
+  complementary descriptions of sleep-network dynamics?
 
-The project is intentionally structured in phases. Before calculating graph
-metrics or training graph neural networks, the connectivity data must be
-generated reproducibly and inspected critically. Phase 1 therefore focuses on
-the practical and methodological foundation: converting raw overnight EEG
-recordings into labelled, frequency-specific wPLI graphs while preserving
-sufficient metadata to audit preprocessing decisions later.
+## Project workflow
 
-The current phase includes memory-efficient streaming of large EDF recordings,
-sleep-stage alignment, downsampling, chin-EMG-related correction, artifact
-handling through selective bad-channel interpolation or epoch removal,
-frequency-specific wPLI graph construction, HDF5 export, and targeted
-quality-control checks.
+```text
+ANPHY-Sleep recordings and annotations
+│
+├── Overnight high-density EEG recordings
+├── Sleep-stage annotations
+├── Channel-level artifact matrices
+└── Electrode-position information
+        │
+        ▼
+1. EEG processing and connectivity construction
+│
+├── Stream 30-second EEG epochs from EDF recordings
+├── Align epochs with sleep-stage labels
+├── Downsample 1000 Hz → 200 Hz
+├── Regress chin-EMG-linked components
+├── Drop heavily artifact-contaminated epochs
+├── Interpolate a limited number of bad channels
+└── Compute wPLI matrices in delta, theta, alpha, sigma, and beta bands
+        │
+        ▼
+2. Quality control and artifact sensitivity analysis
+│
+├── Validate HDF5 output structure and wPLI value ranges
+├── Check montage and channel-order alignment
+├── Inspect representative connectivity graphs
+├── Check peripheral-channel enrichment and possible EMG sensitivity
+├── Check frontal-channel enrichment and possible EOG sensitivity
+└── Check possible interpolation-related effects
+        │
+        ▼
+3. Classical stage-mean graph-theoretical analysis
+│
+├── Average graphs within subject × stage × band
+├── Calculate weighted graph metrics
+├── Evaluate unthresholded weighted networks
+├── Evaluate thresholded network robustness
+├── Use connected thresholds for path-based integration metrics
+└── Compare descriptive within-subject patterns across stages
+        │
+        ▼
+4. Phase B: self-supervised graph representation learning
+│
+├── Construct thresholded individual delta-band graphs
+├── Train a GATv2 graph autoencoder using participant-level data splits
+├── Learn a graph embedding for each 30-second epoch
+├── Compare embeddings of adjacent stable-stage epochs
+├── Summarize within-stage stability at the participant level
+└── Perform exploratory repeated-measures permutation testing
+        │
+        ▼
+Interpretation of static and temporal sleep-network organization
+```
 
-These checks are important because graph-based EEG results can be influenced by
-details such as channel identity, montage alignment, artifact handling,
-interpolation, residual muscle activity, eye-movement contamination, and
-differences in the number of available epochs across participants and stages.
-The repository therefore treats visualization and artifact-related analyses as
-quality-control and sensitivity checks rather than as final physiological
-conclusions.
+## Current project scope
 
-## Scope of the current repository phase
+The repository currently contains an end-to-end exploratory workflow from raw
+overnight EEG recordings to static and temporal analyses of functional
+connectivity.
 
-The code currently documented below implements **Phase 1: EEG processing,
-connectivity construction, and quality control**.
+### Implemented components
 
-Its output is a reusable per-subject graph dataset containing:
+- Memory-efficient processing of overnight high-density EEG recordings.
+- Frequency-specific wPLI graph construction for delta, theta, alpha, sigma,
+  and beta bands.
+- HDF5 storage of participant-level epoch graphs, sleep-stage labels, channel
+  names, original epoch indices, and interpolation audit information.
+- Data-quality, montage, EMG-related peripheral-channel, EOG-related frontal
+  channel, and interpolation sensitivity checks.
+- Stage-mean graph construction for each participant × sleep stage × frequency
+  band combination.
+- Unthresholded weighted graph-theoretical analysis.
+- Proportional-threshold robustness analysis using sparse and fully connected
+  graph-density families.
+- Static graph metrics including mean wPLI, node strength, weighted clustering,
+  weighted global efficiency, characteristic path length, Louvain modularity,
+  and community count.
+- A beta-band peripheral–peripheral edge-exclusion sensitivity specification.
+- Self-supervised GATv2 graph-autoencoder training on individual delta-band
+  connectivity graphs.
+- Participant-level within-stage temporal-stability analysis based on distances
+  between adjacent graph embeddings.
+- Exploratory repeated-measures Friedman permutation analysis of stage-related
+  differences in learned within-stage stability.
 
-- One wPLI connectivity matrix per retained 30-second epoch.
-- Separate graph matrices for delta, theta, alpha, sigma, and beta bands.
-- Sleep-stage labels and original epoch indices.
-- The EEG channel order corresponding to every graph matrix row and column.
-- The number of channels interpolated in each retained epoch.
+### Project outputs
 
-This output provides the input for later graph-theoretical, temporal-dynamics,
-subject-aware statistical, and self-supervised GATv2 autoencoder analyses.
+The workflow produces three main categories of output:
 
-> **Interpretation note:** the current repository phase establishes a
-> reproducible and auditable connectivity dataset. It does not yet make final
-> population-level claims about sleep-stage-dependent neural connectivity.
+```text
+1. Epoch-level connectivity graphs
+   One wPLI matrix per retained 30-second epoch, band, and participant.
+
+2. Stage-mean graphs and static graph metrics
+   One stage-mean graph and one set of graph-theoretical measures per
+   participant × sleep stage × frequency band combination.
+
+3. Learned graph representations and within-stage stability measures
+   One graph embedding per selected delta-band epoch, plus participant-level
+   summaries of embedding-distance stability within each sleep stage.
+```
+
+### Interpretation principles
+
+This is an exploratory research project. The repository aims to make the
+analysis reproducible, inspectable, and scientifically cautious.
+
+- Raw epoch pairs are not treated as independent participant observations.
+- Stage-mean static graphs are treated as repeated measurements within
+  participants.
+- Participant-level summaries are used before cohort-level descriptions or
+  repeated-measures tests.
+- Graph visualizations are interpreted as exploratory and diagnostic unless
+  supported by formal subject-aware statistical analysis.
+- Artifact-related findings are treated as sensitivity checks rather than
+  automatic evidence that a connectivity pattern is biological or artifactual.
+- The beta peripheral-edge exclusion is a narrow robustness specification and
+  is kept separate from the full-beta analysis.
+- GATv2 embedding distance is a learned representation-space measure; it is
+  not a direct physiological distance.
+- The current statistical analyses are exploratory and should be followed by
+  clearly specified pairwise tests, effect sizes, confidence intervals, and
+  appropriate multiple-comparison correction where relevant.
+
+> **Scope note:** the repository now implements the complete exploratory
+> workflow: preprocessing and quality control, classical static
+> graph-theoretical analysis, and self-supervised graph-representation learning
+> for within-stage temporal stability. The results remain exploratory and are
+> not presented as definitive clinical or neurophysiological conclusions.
 
 ## Phase 1: EEG processing, connectivity construction, and quality control
 
@@ -918,7 +1046,7 @@ were fully connected:
 ```
 
 This makes weighted global efficiency and weighted characteristic path length
-well-defined for the connected-threshold analysis. [25]
+well-defined for the connected-threshold analysis.  
 
 ### Thresholded graph metrics
 
@@ -946,7 +1074,7 @@ The primary connected-threshold metrics are:
 The connected-threshold analysis shows qualitatively similar sleep-stage
 patterns at both 85% and 90% graph density. This supports robustness of the
 descriptive integration patterns to the choice between these two connected
-thresholds. [25]
+thresholds.  
 
 The main candidate patterns for later formal testing are:
 
@@ -963,7 +1091,7 @@ The main candidate patterns for later formal testing are:
 The principal descriptive observation is that sigma-band networks appear more
 integrated during N2/N3 and less integrated during REM. These observations are
 not yet inferential conclusions and require subject-aware statistical tests
-with appropriate control of repeated measures and multiple comparisons. [25]
+with appropriate control of repeated measures and multiple comparisons.  
 
 Weighted clustering and Louvain modularity are retained as complementary,
 supplementary topology measures. They can provide useful information about
@@ -1334,18 +1462,14 @@ embedding distances were approximately:
 
 Lower values correspond to greater temporal stability of the learned graph
 representation. The held-out summary is intentionally descriptive because it
-contains only three participants. [57]
+contains only three participants.    
 
-### Exploratory omnibus permutation check
+### Exploratory permutation check
 
 An exploratory repeated-measures Friedman analysis tests whether
 participant-level within-stage stability differs across the five sleep stages.
 
-The observed Friedman chi-square statistic was:
-
-```text
-Observed Friedman statistic: 20.714
-```
+The observed Friedman chi-square statistic was: 20.714.
 
 A permutation null distribution is generated by repeatedly shuffling stage
 labels within participants and recalculating the Friedman statistic. This
@@ -1354,9 +1478,9 @@ association between a participant's stability values and their stage labels.
 
 The observed statistic lies beyond the visible permutation null distribution,
 supporting an exploratory stage-related difference in within-stage embedding
-stability. The omnibus result indicates that at least one stage differs from at
+stability. The result indicates that at least one stage differs from at
 least one other stage; it does not identify the responsible stage pair(s) or
-their direction. [58]
+their direction.   
 
 > The exact permutation p-value should be reported together with the number of
 > permutations used. Use the finite-sample corrected estimate:
@@ -1420,7 +1544,7 @@ This is an exploratory proof-of-concept analysis.
   pairs as independent observations.
 - Only pairs with the same stage label are included in the primary stability
   analysis; stage transitions are deliberately excluded from the outcome.
-- A Friedman test is an omnibus comparison. Pairwise within-participant
+- A Friedman test is an general comparison. Pairwise within-participant
   follow-up tests, effect sizes, confidence intervals, and correction for
   multiple comparisons are needed to identify which stages differ.
 - The held-out test subset provides independent descriptive context but is too
@@ -1445,3 +1569,155 @@ comparisons, participant-aware effect-size estimation, robustness to graph
 density and model hyperparameters, comparison with non-learned graph-distance
 measures, and interpretation of which connectivity features drive learned
 embedding differences.
+
+---
+
+## Overall conclusions
+
+This project establishes an end-to-end workflow for studying sleep EEG
+functional connectivity as a sequence of weighted brain-network graphs.
+
+```text
+Raw overnight EEG and annotations
+        ↓
+Artifact-aware preprocessing
+        ↓
+Per-epoch wPLI connectivity graphs
+        ↓
+Stage-mean graph-theoretical analysis
+        +
+Epoch-resolved GATv2 graph-embedding analysis
+        ↓
+Complementary static and temporal views of sleep-network organization
+```
+
+The workflow includes:
+
+- Memory-efficient processing of overnight high-density EEG recordings.
+- Frequency-specific wPLI graphs for 83 scalp EEG channels in delta, theta,
+  alpha, sigma, and beta bands.
+- Subject-level HDF5 outputs containing graph matrices, sleep-stage labels,
+  original epoch indices, channel names, and interpolation metadata.
+- Quality-control and sensitivity checks for montage alignment, HDF5 outputs,
+  interpolation, peripheral-channel effects, and frontal-channel effects.
+- Stage-mean functional networks and classical weighted graph metrics.
+- Threshold robustness checks for static network measures.
+- A self-supervised GATv2 autoencoder for learning representations of
+  individual 30-second delta-band graphs.
+- Participant-level analysis of within-stage temporal stability using
+  distances between adjacent graph embeddings.
+
+Together, these components provide a reusable framework for studying sleep EEG
+networks at both stage-mean and 30-second time scales.
+
+### Static network analysis
+
+The static analysis created one stage-mean connectivity graph for every
+participant, sleep stage, and frequency band.
+
+All 700 participant × stage × band graphs remained fully connected at both 85%
+and 90% retained graph density. Global efficiency and characteristic path
+length were almost unchanged between these two connected thresholds, supporting
+the robustness of the descriptive integration patterns to this threshold choice.
+
+The descriptive results suggest that:
+
+- Sigma-band networks are relatively more integrated during N2 and N3 and less
+  integrated during REM.
+- Delta-band integration is relatively higher during Wake and N2 and lower
+  during N1 and REM.
+- Alpha-band integration may be lower during REM.
+- Theta-band integration appears comparatively stable across stages.
+- Beta-band integration may decrease toward N2/N3 and partly recover in REM,
+  although participant-to-participant variation is substantial.
+
+Beta-band results should be interpreted cautiously. A peripheral-channel
+sensitivity analysis motivated a narrow robustness check that excludes only
+peripheral–peripheral beta edges while keeping all 83 EEG nodes.
+
+### Within-stage graph dynamics
+
+The GATv2 autoencoder analysis adds an epoch-resolved perspective by learning
+a graph embedding for each selected 30-second delta-band connectivity graph.
+
+```text
+Lower embedding distance:
+    More similar learned graph representations between adjacent epochs.
+
+Higher embedding distance:
+    Greater change in the learned graph representation between adjacent epochs.
+```
+
+Within-stage stability was calculated only from adjacent 30-second epoch pairs
+with the same scored stage label. Distances were summarized within each
+participant and stage before cohort-level descriptions, so individual epoch
+pairs were not treated as independent observations.
+
+The results show substantial participant-specific variation in within-stage
+delta-band graph stability. Wake had the lowest descriptive cohort estimate and
+REM the highest, but differences between stages were small relative to
+individual variation and bootstrap confidence intervals overlapped.
+
+The current analysis therefore supports graph embeddings as a useful
+descriptive tool for examining short-timescale sleep-network dynamics. It does
+not yet support a strong cohort-wide conclusion that one sleep stage is always
+more stable than another.
+
+An exploratory Friedman permutation analysis produced an observed statistic of
+20.714 outside the visible permutation null distribution. This suggests that
+participant-level stability profiles are not fully identical across stages.
+However, this general result does not identify which stage pairs differ and
+should be followed by paired, participant-aware comparisons.
+
+### Interpretation
+
+The two analysis branches answer complementary questions:
+
+```text
+Static graph metrics:
+    How does average network organization differ between stages?
+
+Graph embeddings:
+    How much does network structure change from one 30-second epoch to the
+    next within the same stage?
+```
+
+A sleep stage can have a characteristic average connectivity pattern while also
+showing meaningful short-timescale variation within individual participants.
+
+All results remain exploratory and should not be treated as definitive
+physiological or clinical conclusions without confirmatory analysis,
+robustness checks, and replication.
+
+---
+
+## Future work
+
+### Statistical analysis
+
+- Perform paired, participant-aware follow-up comparisons between sleep stages.
+- Report effect sizes and confidence intervals alongside p-values.
+- Apply multiple-comparison correction across graph metrics, frequency bands,
+  and stage comparisons.
+- Define clear inclusion rules for participants with incomplete stage coverage.
+- Use repeated-measures models or participant-level permutation tests.
+
+### Method extensions
+
+- Complete and evaluate minimum-spanning-tree and graph-entropy analyses.
+- Add node-level, regional, hub, and community-consensus analyses.
+- Compare learned embedding distances with classical graph metrics and
+  non-learned graph-distance measures.
+- Analyse stage transitions separately from stable within-stage pairs.
+- Study graph-embedding trajectories across the full night.
+- Use explainability methods to investigate which connections contribute most
+  to learned graph representations.
+
+## Final perspective
+
+The main contribution of this project is the creation of an auditable workflow
+linking high-density sleep EEG preprocessing, connectivity analysis, classical
+network science, and self-supervised graph learning.
+
+It provides a practical foundation for studying both average sleep-stage
+network organization and short-timescale changes within sleep stages.
