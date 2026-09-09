@@ -1,0 +1,26 @@
+# Core numerical and tabular computing
+numpy
+pandas
+scipy
+
+# EEG/EDF processing and montage interpolation
+pyedflib
+mne
+
+# HDF5 input/output
+h5py
+
+# Graph-theoretical analysis
+networkx
+
+# Visualization
+matplotlib
+seaborn
+
+# Data download and progress reporting
+requests
+tqdm
+
+# Jupyter notebooks
+jupyterlab
+ipykernel
