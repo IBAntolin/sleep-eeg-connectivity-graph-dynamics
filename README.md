@@ -5,6 +5,82 @@ graph-theoretical analysis of stage-mean wPLI networks and self-supervised
 GATv2 autoencoder learning on 30-second delta-band connectivity graphs to assess
 within-stage temporal stability.
 
+## Introduction
+
+Sleep is not a uniform state. Across a night, the brain transitions between
+wakefulness, light non-REM sleep, deep non-REM sleep, and REM sleep, each of
+which is associated with changes in neural oscillations, large-scale
+coordination, sensory responsiveness, and information processing.
+
+This project studies these transitions from a network perspective. Rather than
+examining EEG channels independently, it represents the scalp EEG recording as
+a functional network in which electrodes are nodes and their phase-based
+statistical relationships are weighted edges. This makes it possible to ask how
+the organization of the estimated functional network changes across sleep
+stages and over time within a stage.
+
+The initial connectivity representation is based on weighted phase-lag index
+(wPLI). For each 30-second scored EEG epoch, wPLI estimates the consistency of
+non-zero-lag phase relationships between pairs of EEG channels. Each epoch is
+therefore transformed into a weighted adjacency matrix rather than treated only
+as a collection of separate electrode time series.
+
+The central long-term questions are:
+
+- How do frequency-specific functional connectivity networks differ between
+  Wake, N1, N2, N3, and REM sleep?
+- Do stage-mean networks differ in graph-theoretical measures of integration,
+  segregation, efficiency, modular organization, or hub structure?
+- How stable are connectivity graphs within a nominally homogeneous sleep
+  stage, particularly in the delta band?
+- Can self-supervised graph representation learning identify meaningful
+  within-stage temporal variation that conventional stage labels may not fully
+  capture?
+- Do the network patterns identified by graph-theoretical analysis and
+  self-supervised GATv2-based representations agree or provide complementary
+  descriptions of sleep-network dynamics?
+
+The project is intentionally structured in phases. Before calculating graph
+metrics or training graph neural networks, the connectivity data must be
+generated reproducibly and inspected critically. Phase 1 therefore focuses on
+the practical and methodological foundation: converting raw overnight EEG
+recordings into labelled, frequency-specific wPLI graphs while preserving
+sufficient metadata to audit preprocessing decisions later.
+
+The current phase includes memory-efficient streaming of large EDF recordings,
+sleep-stage alignment, downsampling, chin-EMG-related correction, artifact
+handling through selective bad-channel interpolation or epoch removal,
+frequency-specific wPLI graph construction, HDF5 export, and targeted
+quality-control checks.
+
+These checks are important because graph-based EEG results can be influenced by
+details such as channel identity, montage alignment, artifact handling,
+interpolation, residual muscle activity, eye-movement contamination, and
+differences in the number of available epochs across participants and stages.
+The repository therefore treats visualization and artifact-related analyses as
+quality-control and sensitivity checks rather than as final physiological
+conclusions.
+
+## Scope of the current repository phase
+
+The code currently documented below implements **Phase 1: EEG processing,
+connectivity construction, and quality control**.
+
+Its output is a reusable per-subject graph dataset containing:
+
+- One wPLI connectivity matrix per retained 30-second epoch.
+- Separate graph matrices for delta, theta, alpha, sigma, and beta bands.
+- Sleep-stage labels and original epoch indices.
+- The EEG channel order corresponding to every graph matrix row and column.
+- The number of channels interpolated in each retained epoch.
+
+This output provides the input for later graph-theoretical, temporal-dynamics,
+subject-aware statistical, and self-supervised GATv2 autoencoder analyses.
+
+> **Interpretation note:** the current repository phase establishes a
+> reproducible and auditable connectivity dataset. It does not yet make final
+> population-level claims about sleep-stage-dependent neural connectivity.
+
 ## Phase 1: EEG processing, connectivity construction, and quality control
 
 This repository begins with a reproducible preprocessing and quality-control
