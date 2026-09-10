@@ -140,11 +140,14 @@ project. It shows the strongest within-band wPLI connections from one
 30-second N1 epoch of one of the subjects.
 
 ![Illustrative multi-band scalp connectivity graph from one 30-second N1 epoch
+of participant EPCTL01.](figures/scalp_graph.png)
+
+*Figure. Illustrative multi-band scalp connectivity graph from one 30-second N1 epoch
 of participant EPCTL01. Nodes are scalp EEG electrodes. Lines represent the
 strongest 4% of wPLI edges within each frequency band. A shared colour scale
 indicates absolute wPLI magnitude across delta, theta, alpha, sigma, and beta.
 This single-epoch visualization demonstrates the graph representation used in
-the project and is not a group-level result.](figures/scalp_graph.png)
+the project and is not a group-level result.*
 
 Only the strongest 4% of edges are shown separately within each frequency band
 to keep the scalp networks readable, and the common colour scale allows the
@@ -1098,12 +1101,15 @@ values. All graphs were fully connected at both thresholds, so weighted global
 efficiency is well-defined for every participant × stage × band graph.
 
 ![Participant-level weighted global efficiency across sleep stages and
+frequency bands](figures/global_eff_2.png)
+
+*Figure. Participant-level weighted global efficiency across sleep stages and
 frequency bands. Rows show proportional thresholds retaining 85% and 90% of
 edges; grey lines connect repeated measurements from the same participant,
-while boxplots and points summarize participant-level values. Beta-band graphs
-use the peripheral–peripheral edge-exclusion sensitivity specification. This
-figure is descriptive and exploratory; it is not a formal statistical
-test.](figures/global_eff_2.png)
+while boxplots and points summarize participant-level values. All graphs were
+fully connected at both thresholds. Beta-band graphs use the
+peripheral–peripheral edge-exclusion sensitivity specification. This figure is
+descriptive and exploratory, not a formal statistical test.*
 
 ### Current descriptive findings
 
