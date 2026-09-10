@@ -28,7 +28,7 @@ separate channel time series.
 
 ```text
 One scored 30-second EEG epoch
-        ↓
+        ↓ 
 Band-specific wPLI connectivity estimation
         ↓
 One weighted EEG functional-connectivity graph
@@ -132,6 +132,23 @@ ANPHY-Sleep recordings and annotations
         ▼
 Interpretation of static and temporal sleep-network organization
 ```
+
+## Example connectivity representation
+
+The figure below illustrates the graph representation used throughout the
+project. It shows the strongest within-band wPLI connections from one
+30-second N1 epoch of one of the subjects.
+
+![Illustrative multi-band scalp connectivity graph from one 30-second N1 epoch
+of participant EPCTL01. Nodes are scalp EEG electrodes. Lines represent the
+strongest 4% of wPLI edges within each frequency band. A shared colour scale
+indicates absolute wPLI magnitude across delta, theta, alpha, sigma, and beta.
+This single-epoch visualization demonstrates the graph representation used in
+the project and is not a group-level result.](figures/scalp_graph.png)
+
+Only the strongest 4% of edges are shown separately within each frequency band
+to keep the scalp networks readable, and the common colour scale allows the
+strength of the displayed edges to be compared across bands.
 
 ## Current project scope
 
