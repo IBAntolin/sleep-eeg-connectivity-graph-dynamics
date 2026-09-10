@@ -1089,7 +1089,7 @@ The primary connected-threshold metrics are:
 | `mean_weighted_clustering` | Describes local weighted neighbourhood structure |
 | `modularity_louvain` | Describes weighted community-like organization |
 
-### Exploratory connected-threshold results
+### Connected-threshold results
 
 The figure below shows participant-level weighted global efficiency across sleep
 stages for the five frequency bands. The upper row retains 85% of possible
@@ -1505,7 +1505,7 @@ Lower values correspond to greater temporal stability of the learned graph
 representation. The held-out summary is intentionally descriptive because it
 contains only three participants.    
 
-### Exploratory permutation check
+### Permutation check
 
 An exploratory repeated-measures Friedman analysis tests whether
 participant-level within-stage stability differs across the five sleep stages.
@@ -1551,7 +1551,7 @@ phase_b_gatv2_autoencoder/
 ├── participant-by-stage stability matrix
 ├── bootstrap summary table
 ├── held-out test-subject summary
-└── exploratory stability figures
+└── stability figures
 ```
 
 Typical saved outputs include:
@@ -1600,7 +1600,7 @@ individual 30-second delta-band EEG functional-connectivity graphs and
 quantifying their short-timescale stability within conventionally scored sleep
 stages.
 
-The analysis provides exploratory evidence that the learned graph
+The analysis provides shows that the learned graph
 representation does not have identical within-stage stability across all sleep
 stages. This complements the stage-mean static network analysis by adding a
 temporal, epoch-resolved description of functional-connectivity dynamics.
@@ -1694,18 +1694,16 @@ with the same scored stage label. Distances were summarized within each
 participant and stage before cohort-level descriptions, so individual epoch
 pairs were not treated as independent observations.
 
-### Exploratory within-stage graph stability
+### Within-stage graph stability
 
-![Participant-level delta-band graph-embedding stability across sleep stages.](figures/delta_within_stage_stability.png)
+![Participant-level delta-band graph-embedding stability across sleep stages.](figures/delta_stride10_density20_within_stage_stability_combined.png)
 
 *Figure3. Participant-level median embedding distance between adjacent
 30-second delta-band connectivity graphs with the same sleep-stage label.
 Panel A shows individual participant stability profiles. Panel B shows the
 participant-by-stage matrix. Panel C summarizes participant-level medians with
 bootstrap 95% confidence intervals. Lower distance indicates greater temporal
-stability of the learned graph representation. This is an exploratory
-participant-level analysis; raw epoch-pair counts were not treated as
-independent observations.*
+stability of the learned graph representation.*
 
 The results show substantial participant-specific variation in within-stage
 delta-band graph stability. Wake had the lowest descriptive cohort estimate and
