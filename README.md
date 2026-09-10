@@ -142,7 +142,7 @@ project. It shows the strongest within-band wPLI connections from one
 ![Illustrative multi-band scalp connectivity graph from one 30-second N1 epoch
 of participant EPCTL01.](figures/scalp_graph.png)
 
-*Figure. Illustrative multi-band scalp connectivity graph from one 30-second N1 epoch
+*Figure1. Illustrative multi-band scalp connectivity graph from one 30-second N1 epoch
 of participant EPCTL01. Nodes are scalp EEG electrodes. Lines represent the
 strongest 4% of wPLI edges within each frequency band. A shared colour scale
 indicates absolute wPLI magnitude across delta, theta, alpha, sigma, and beta.
@@ -1103,13 +1103,12 @@ efficiency is well-defined for every participant × stage × band graph.
 ![Participant-level weighted global efficiency across sleep stages and
 frequency bands](figures/global_eff_2.png)
 
-*Figure. Participant-level weighted global efficiency across sleep stages and
+*Figure2. Participant-level weighted global efficiency across sleep stages and
 frequency bands. Rows show proportional thresholds retaining 85% and 90% of
 edges; grey lines connect repeated measurements from the same participant,
 while boxplots and points summarize participant-level values. All graphs were
 fully connected at both thresholds. Beta-band graphs use the
-peripheral–peripheral edge-exclusion sensitivity specification. This figure is
-descriptive and exploratory, not a formal statistical test.*
+peripheral–peripheral edge-exclusion sensitivity specification.*
 
 ### Current descriptive findings
 
