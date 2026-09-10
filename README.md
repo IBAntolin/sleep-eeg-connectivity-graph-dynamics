@@ -1694,6 +1694,19 @@ with the same scored stage label. Distances were summarized within each
 participant and stage before cohort-level descriptions, so individual epoch
 pairs were not treated as independent observations.
 
+### Exploratory within-stage graph stability
+
+![Participant-level delta-band graph-embedding stability across sleep stages.](figures/delta_within_stage_stability.png)
+
+*Figure3. Participant-level median embedding distance between adjacent
+30-second delta-band connectivity graphs with the same sleep-stage label.
+Panel A shows individual participant stability profiles. Panel B shows the
+participant-by-stage matrix. Panel C summarizes participant-level medians with
+bootstrap 95% confidence intervals. Lower distance indicates greater temporal
+stability of the learned graph representation. This is an exploratory
+participant-level analysis; raw epoch-pair counts were not treated as
+independent observations.*
+
 The results show substantial participant-specific variation in within-stage
 delta-band graph stability. Wake had the lowest descriptive cohort estimate and
 REM the highest, but differences between stages were small relative to
