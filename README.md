@@ -1086,6 +1086,25 @@ The primary connected-threshold metrics are:
 | `mean_weighted_clustering` | Describes local weighted neighbourhood structure |
 | `modularity_louvain` | Describes weighted community-like organization |
 
+### Exploratory connected-threshold results
+
+The figure below shows participant-level weighted global efficiency across sleep
+stages for the five frequency bands. The upper row retains 85% of possible
+edges and the lower row retains 90%.
+
+Grey lines connect repeated measurements from the same participant. Boxplots
+and points show the distribution of participant-level stage-mean network
+values. All graphs were fully connected at both thresholds, so weighted global
+efficiency is well-defined for every participant × stage × band graph.
+
+![Participant-level weighted global efficiency across sleep stages and
+frequency bands. Rows show proportional thresholds retaining 85% and 90% of
+edges; grey lines connect repeated measurements from the same participant,
+while boxplots and points summarize participant-level values. Beta-band graphs
+use the peripheral–peripheral edge-exclusion sensitivity specification. This
+figure is descriptive and exploratory; it is not a formal statistical
+test.](figures/global_eff_2.png)
+
 ### Current descriptive findings
 
 The connected-threshold analysis shows qualitatively similar sleep-stage
